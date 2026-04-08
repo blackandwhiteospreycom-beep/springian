@@ -1,0 +1,148 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Cabin:wght@400;700&display=swap');
+
+@theme {
+  --color-primary: #296374;
+  --color-text: #000000;
+  --color-bg: #FFFFFF;
+  --font-primary: 'Cabin', sans-serif;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  overflow-x: hidden;
+}
+
+/* ==========================================
+   Drag-and-Drop Dashboard Styles
+   ========================================== */
+
+/* React Grid Layout Custom Styles */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+  transition: none;
+  z-index: 1;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  opacity: 0.9;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(41, 99, 116, 0.2);
+  border: 2px dashed var(--color-primary);
+  border-radius: 0.5rem;
+  opacity: 0.5;
+  transition-duration: 100ms;
+  z-index: 2;
+}
+
+/* Custom Resize Handle */
+.react-resizable-handle {
+  background-image: none !important;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background-position: bottom left;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #cbd5e1;
+  border-bottom: 2px solid #cbd5e1;
+}
+
+.react-resizable-handle:hover::after {
+  border-color: var(--color-primary);
+}
+
+/* Widget Animations */
+.widget-wrapper {
+  transition: all 0.2s ease-in-out;
+}
+
+.widget-wrapper:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Drag Cursor */
+.react-grid-item-drag-handle {
+  cursor: grab;
+}
+
+.react-grid-item-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Navigation Builder Drag Styles */
+.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+/* Dashboard Builder Transitions */
+.dashboard-builder {
+  transition: all 0.3s ease;
+}
+
+/* Custom Scrollbar */
+.dashboard-builder ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dashboard-builder ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.dashboard-builder ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dashboard-builder ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Grid */
+@media (max-width: 1200px) {
+  .react-grid-item {
+    transition-property: left, top, width;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .react-resizable-handle {
+    display: none;
+  }
+  
+  .widget-header button {
+    display: none;
+  }
+}
