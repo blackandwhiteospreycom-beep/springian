@@ -1,217 +1,302 @@
-import { useState } from 'react'
-import { Outlet, useLocation, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { useDashboard, WIDGET_TYPES } from '../context/DashboardContext'
 import {
-  AiOutlineDashboard,
   AiOutlineAppstore,
   AiOutlineTeam,
   AiOutlineBarChart,
   AiOutlineSetting,
-  AiOutlineUser,
-  AiOutlineLogout,
   AiOutlineMenuFold,
   AiOutlineMenuUnfold,
   AiOutlineBell,
   AiOutlineSearch,
   AiOutlineDown,
-  AiOutlineDollar
+  AiOutlineUser,
+  AiOutlineHome,
+  AiOutlineLogout,
+  AiOutlineDollar,
+  AiOutlinePlus,
+  AiOutlineCheck
 } from 'react-icons/ai'
+import AIIntegration from './AIChat/AIIntegration'
 
-function SuperAdminDashboard() {
-  const location = useLocation()
+const SERVICE_WIDGETS = {
+  crm: {
+    id: 'crm',
+    label: 'CRM',
+    icon: AiOutlineAppstore,
+    color: '#296374',
+    users: 1250,
+    status: 'active',
+    widgetTypes: ['crm-stats', 'crm-leads', 'crm-pipeline'],
+  },
+  erp: {
+    id: 'erp',
+    label: 'ERP',
+    icon: AiOutlineBarChart,
+    color: '#714B67',
+    users: 890,
+    status: 'active',
+    widgetTypes: ['erp-overview'],
+  },
+  hr: {
+    id: 'hr',
+    label: 'HR',
+    icon: AiOutlineTeam,
+    color: '#25A8E1',
+    users: 654,
+    status: 'active',
+    widgetTypes: ['hr-employees', 'hr-attendance'],
+  },
+  projects: {
+    id: 'projects',
+    label: 'Projects',
+    icon: AiOutlineAppstore,
+    color: '#00AEEF',
+    users: 523,
+    status: 'active',
+    widgetTypes: ['project-tasks', 'project-board'],
+  },
+  accounting: {
+    id: 'accounting',
+    label: 'Accounting',
+    icon: AiOutlineDollar,
+    color: '#16A34A',
+    users: 445,
+    status: 'active',
+    widgetTypes: ['accounting-journal', 'accounting-reports'],
+  },
+  inventory: {
+    id: 'inventory',
+    label: 'Inventory',
+    icon: AiOutlineAppstore,
+    color: '#DC2626',
+    users: 378,
+    status: 'active',
+    widgetTypes: ['inventory-products', 'inventory-stock'],
+  },
+}
+
+function SuperAdminDashboard({ children }) {
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const { addWidget } = useDashboard()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [activeServices, setActiveServices] = useState(
+    JSON.parse(localStorage.getItem('activeServices') || '["crm","erp","hr","projects","accounting","inventory"]')
+  )
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Check if user is logged in as super admin (for demo, always true)
-  const isAdmin = localStorage.getItem('isAdmin') === 'true'
-
-  if (!isAdmin) {
-    return <Navigate to="/login" replace />
+  const toggleService = (serviceId) => {
+    setActiveServices(prev => {
+      const next = prev.includes(serviceId)
+        ? prev.filter(s => s !== serviceId)
+        : [...prev, serviceId]
+      localStorage.setItem('activeServices', JSON.stringify(next))
+      return next
+    })
   }
 
-  const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: AiOutlineDashboard },
-    { path: '/admin/services', label: 'Services', icon: AiOutlineAppstore },
-    { path: '/admin/users', label: 'Users', icon: AiOutlineTeam },
-    { path: '/admin/analytics', label: 'Analytics', icon: AiOutlineBarChart },
-    { path: '/admin/settings', label: 'Settings', icon: AiOutlineSetting },
-  ]
+  const addServiceWidget = (serviceId) => {
+    const service = SERVICE_WIDGETS[serviceId]
+    if (service && addWidget) {
+      addWidget('link', {
+        i: `widget-${serviceId}-${Date.now()}`,
+        x: 0,
+        y: 0,
+        w: 3,
+        h: 3,
+        minW: 2,
+        minH: 2,
+        maxW: 6,
+        maxH: 6,
+      }, {
+        title: service.label,
+        url: `/dashboard`,
+        description: `${service.label} module`,
+        icon: 'link',
+        color: service.color,
+      })
+    }
+  }
 
-  const services = [
-    { name: 'CRM', icon: AiOutlineAppstore, color: '#296374', status: 'active', users: 1250 },
-    { name: 'ERP', icon: AiOutlineBarChart, color: '#714B67', status: 'active', users: 890 },
-    { name: 'HR', icon: AiOutlineTeam, color: '#25A8E1', status: 'active', users: 654 },
-    { name: 'Projects', icon: AiOutlineAppstore, color: '#00AEEF', status: 'active', users: 523 },
-    { name: 'Accounting', icon: AiOutlineDollar, color: '#16A34A', status: 'active', users: 445 },
-    { name: 'Inventory', icon: AiOutlineAppstore, color: '#DC2626', status: 'active', users: 378 },
+  const allServices = Object.values(SERVICE_WIDGETS)
+  const filteredServices = searchQuery
+    ? allServices.filter(s => s.label.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allServices
+
+  // Navigation for Super Admin
+  const adminNavItems = [
+    { path: '/admin', label: 'Platform Overview', icon: AiOutlineHome },
+    { path: '/dashboard/services', label: 'Services', icon: AiOutlineAppstore },
+    { path: '/dashboard/users', label: 'Users', icon: AiOutlineTeam },
+    { path: '/dashboard/analytics', label: 'Analytics', icon: AiOutlineBarChart },
+    { path: '/dashboard/settings', label: 'Settings', icon: AiOutlineSetting },
   ]
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
+      {/* Sidebar — Widget/Service Controller */}
       <aside
         className={`bg-gray-900 text-white transition-all duration-300 fixed sm:relative h-screen sm:h-auto z-50 ${
           sidebarOpen ? 'w-64' : 'w-20'
         }`}
       >
-        {/* Logo Section */}
+        {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-gray-800">
           {sidebarOpen && (
-            <span className="text-xl font-bold text-primary font-primary">
-              Master App
-            </span>
+            <span className="text-xl font-bold text-primary font-primary">Master App</span>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
           >
-            {sidebarOpen ? (
-              <AiOutlineMenuFold className="text-xl" />
-            ) : (
-              <AiOutlineMenuUnfold className="text-xl" />
-            )}
+            {sidebarOpen ? <AiOutlineMenuFold className="text-xl" /> : <AiOutlineMenuUnfold className="text-xl" />}
           </button>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="mt-4 px-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.path
+        {/* Search */}
+        {sidebarOpen && (
+          <div className="px-3 mt-3">
+            <div className="relative">
+              <AiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search services..."
+                className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Services List */}
+        <nav className="mt-3 px-2">
+          {sidebarOpen && (
+            <h3 className="text-xs text-gray-500 uppercase font-primary mb-2 px-2">Services</h3>
+          )}
+          {filteredServices.map((service) => {
+            const Icon = service.icon
+            const isActive = activeServices.includes(service.id)
             return (
-              <a
-                key={item.path}
-                href={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              <div
+                key={service.id}
+                className={`flex items-center gap-3 px-3 py-2 mb-1 rounded-lg transition-colors ${
+                  isActive ? 'bg-gray-800' : 'bg-gray-800/50 opacity-60'
                 }`}
               >
-                <Icon className="text-xl flex-shrink-0" />
+                <div
+                  className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: service.color }}
+                >
+                  <Icon className="text-white text-sm" />
+                </div>
                 {sidebarOpen && (
-                  <span className="font-medium font-primary">{item.label}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium font-primary truncate">{service.name || service.label}</p>
+                      <button
+                        onClick={() => toggleService(service.id)}
+                        className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                          isActive ? 'bg-green-500' : 'bg-gray-600'
+                        }`}
+                      >
+                        {isActive && <AiOutlineCheck size={12} />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">{service.users} users</p>
+                  </div>
                 )}
-              </a>
+                {sidebarOpen && (
+                  <button
+                    onClick={() => addServiceWidget(service.id)}
+                    className="p-1 hover:bg-gray-700 rounded transition-colors"
+                    title="Add to dashboard"
+                  >
+                    <AiOutlinePlus size={14} />
+                  </button>
+                )}
+              </div>
             )
           })}
         </nav>
 
-        {/* Services Section */}
+        {/* Quick Nav */}
         {sidebarOpen && (
-          <div className="mt-8 px-4">
-            <h3 className="text-xs text-gray-500 uppercase font-primary mb-3">
-              Active Services
-            </h3>
-            {services.map((service) => {
-              const Icon = service.icon
-              return (
-                <div
-                  key={service.name}
-                  className="flex items-center gap-3 px-4 py-2 mb-2 bg-gray-800 rounded-lg"
-                >
-                  <div
-                    className="w-8 h-8 rounded flex items-center justify-center"
-                    style={{ backgroundColor: service.color }}
-                  >
-                    <Icon className="text-white text-sm" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium font-primary">{service.name}</p>
-                    <p className="text-xs text-gray-400">{service.users} users</p>
-                  </div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </div>
-              )
-            })}
+          <div className="mt-6 px-3">
+            <h3 className="text-xs text-gray-500 uppercase font-primary mb-2 px-2">Quick Links</h3>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors mb-1 w-full text-left"
+            >
+              <AiOutlineAppstore className="text-lg flex-shrink-0" />
+              <span className="font-medium font-primary text-sm">Organization Dashboard</span>
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors mb-1 w-full text-left"
+            >
+              <AiOutlineSetting className="text-lg flex-shrink-0" />
+              <span className="font-medium font-primary text-sm">Landing Page</span>
+            </button>
           </div>
         )}
 
         {/* Logout */}
         <div className="absolute bottom-4 left-0 right-0 px-2">
-          <a
-            href="/login"
-            onClick={() => localStorage.removeItem('isAdmin')}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-600 hover:text-white transition-colors"
+          <button
+            onClick={logout}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-600 hover:text-white transition-colors w-full text-left"
           >
             <AiOutlineLogout className="text-xl flex-shrink-0" />
-            {sidebarOpen && (
-              <span className="font-medium font-primary">Logout</span>
-            )}
-          </a>
+            {sidebarOpen && <span className="font-medium font-primary">Logout</span>}
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div
-        className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? 'ml-64 sm:ml-64' : 'ml-20 sm:ml-0'
-        }`}
-      >
+      {/* Main Content — Drag-and-Drop Dashboard */}
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         {/* Top Header */}
         <header className="bg-white shadow-sm h-16 sticky top-0 z-40">
           <div className="h-full px-3 sm:px-6 flex items-center justify-between">
-            {/* Search */}
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-              <div className="relative w-full sm:w-96">
-                <AiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg" />
-                <input
-                  type="text"
-                  placeholder="Search users, services, analytics..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-primary"
-                />
-              </div>
+              <p className="text-lg font-semibold text-gray-800">Super Admin Platform</p>
             </div>
 
-            {/* Right Actions */}
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              {/* Notifications */}
               <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <AiOutlineBell className="text-xl text-gray-600" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
 
-              {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold">
-                    A
+                    {(user?.name || 'A').charAt(0).toUpperCase()}
                   </div>
-                  {sidebarOpen && (
-                    <>
-                      <span className="font-medium font-primary">Admin</span>
-                      <AiOutlineDown className="text-sm" />
-                    </>
-                  )}
+                  <span className="font-medium font-primary hidden sm:inline">{user?.name || 'Admin'}</span>
+                  <AiOutlineDown className="text-sm" />
                 </button>
 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <a
-                      href="#"
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 font-primary"
-                    >
-                      <AiOutlineUser className="text-lg" />
-                      Profile
-                    </a>
-                    <a
-                      href="/admin/settings"
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 font-primary"
-                    >
-                      <AiOutlineSetting className="text-lg" />
-                      Settings
-                    </a>
-                    <hr className="my-2" />
-                    <a
-                      href="/login"
-                      onClick={() => localStorage.removeItem('isAdmin')}
-                      className="flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 font-primary"
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-800">{user?.name}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={logout}
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 w-full text-left font-primary"
                     >
                       <AiOutlineLogout className="text-lg" />
                       Logout
-                    </a>
+                    </button>
                   </div>
                 )}
               </div>
@@ -219,11 +304,13 @@ function SuperAdminDashboard() {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="p-6">
-          <Outlet />
+        {/* Page Content — Children (DashboardBuilder) */}
+        <main>
+          {children}
         </main>
       </div>
+
+      <AIIntegration />
     </div>
   )
 }

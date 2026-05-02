@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { analyticsAPI } from '../api'
 import {
   AiOutlineBarChart,
   AiOutlineLineChart,
@@ -14,117 +15,55 @@ import {
 function Analytics() {
   const [timeRange, setTimeRange] = useState('30d')
   const [selectedService, setSelectedService] = useState('all')
+  const [metrics, setMetrics] = useState([])
+  const [revenueData, setRevenueData] = useState([])
+  const [servicePerformance, setServicePerformance] = useState([])
+  const [userActivityData, setUserActivityData] = useState([])
+  const [topFeatures, setTopFeatures] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const metrics = [
-    {
-      title: 'Total Revenue',
-      value: '$542,847',
-      change: '+12.5%',
-      isPositive: true,
-      icon: AiOutlineBarChart,
-      color: '#296374'
-    },
-    {
-      title: 'Active Users',
-      value: '14,230',
-      change: '+8.2%',
-      isPositive: true,
-      icon: AiOutlineLineChart,
-      color: '#714B67'
-    },
-    {
-      title: 'New Signups',
-      value: '1,847',
-      change: '+18.4%',
-      isPositive: true,
-      icon: AiOutlinePieChart,
-      color: '#25A8E1'
-    },
-    {
-      title: 'Churn Rate',
-      value: '2.3%',
-      change: '-0.5%',
-      isPositive: true,
-      icon: AiOutlineLineChart,
-      color: '#00AEEF'
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      const [metricsRes, revenueRes, servicePerfRes, activityRes, featuresRes] = await Promise.all([
+        analyticsAPI.getMetrics(),
+        analyticsAPI.getRevenue(),
+        analyticsAPI.getServicePerformance(),
+        analyticsAPI.getUserActivity(),
+        analyticsAPI.getTopFeatures(),
+      ])
+      setMetrics(metricsRes.data)
+      setRevenueData(revenueRes.data)
+      setServicePerformance(servicePerfRes.data)
+      setUserActivityData(activityRes.data)
+      setTopFeatures(featuresRes.data)
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
 
-  const revenueData = [
-    { month: 'Jan', revenue: 38000, users: 1200 },
-    { month: 'Feb', revenue: 42000, users: 1350 },
-    { month: 'Mar', revenue: 45000, users: 1450 },
-    { month: 'Apr', revenue: 48000, users: 1580 },
-    { month: 'May', revenue: 52000, users: 1720 },
-    { month: 'Jun', revenue: 55000, users: 1850 },
-    { month: 'Jul', revenue: 58000, users: 1950 },
-    { month: 'Aug', revenue: 62000, users: 2100 },
-    { month: 'Sep', revenue: 54280, users: 2794 },
-  ]
+  const metricIcons = {
+    total_revenue: AiOutlineBarChart,
+    active_users: AiOutlineLineChart,
+    new_signups: AiOutlinePieChart,
+    churn_rate: AiOutlineLineChart,
+  }
 
-  const servicePerformance = [
-    {
-      name: 'CRM',
-      description: 'Customer Relationship Management',
-      icon: AiOutlineAppstore,
-      color: '#296374',
-      revenue: '$245,800',
-      customers: 5240,
-      growth: '+15.2%',
-      satisfaction: '94%'
-    },
-    {
-      name: 'ERP',
-      description: 'Enterprise Resource Planning',
-      icon: AiOutlineBarChart,
-      color: '#714B67',
-      revenue: '$189,500',
-      customers: 4120,
-      growth: '+12.8%',
-      satisfaction: '92%'
-    },
-    {
-      name: 'HR Management',
-      description: 'Human Resources & Payroll',
-      icon: AiOutlineTeam,
-      color: '#25A8E1',
-      revenue: '$107,547',
-      customers: 2890,
-      growth: '+8.5%',
-      satisfaction: '89%'
-    },
-    {
-      name: 'Project Management',
-      description: 'Tasks & Collaboration',
-      icon: AiOutlineAppstore,
-      color: '#00AEEF',
-      revenue: '$85,200',
-      customers: 2150,
-      growth: '+10.2%',
-      satisfaction: '91%'
-    }
-  ]
-
-  const userActivityData = [
-    { day: 'Mon', active: 4500, new: 120, churn: 15 },
-    { day: 'Tue', active: 4800, new: 150, churn: 20 },
-    { day: 'Wed', active: 5200, new: 180, churn: 25 },
-    { day: 'Thu', active: 5100, new: 140, churn: 18 },
-    { day: 'Fri', active: 5500, new: 200, churn: 22 },
-    { day: 'Sat', active: 4200, new: 90, churn: 12 },
-    { day: 'Sun', active: 3800, new: 75, churn: 10 },
-  ]
-
-  const topFeatures = [
-    { name: 'CRM Module', usage: 89, trend: '+5%' },
-    { name: 'Project Management', usage: 76, trend: '+12%' },
-    { name: 'Accounting', usage: 68, trend: '+3%' },
-    { name: 'HR Management', usage: 54, trend: '+8%' },
-    { name: 'Inventory', usage: 45, trend: '-2%' },
-  ]
+  const metricColors = {
+    total_revenue: '#296374',
+    active_users: '#714B67',
+    new_signups: '#25A8E1',
+    churn_rate: '#00AEEF',
+  }
 
   // Simple bar chart component
   const SimpleBarChart = ({ data, height = 200 }) => {
+    if (!data.length) return <div className="text-center text-gray-400 py-8">No data</div>
     const maxValue = Math.max(...data.map(d => d.revenue))
     return (
       <div className="flex items-end gap-2 h-full" style={{ height }}>
@@ -172,41 +111,48 @@ function Analytics() {
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((metric, index) => {
-          const Icon = metric.icon
-          return (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 font-primary">{metric.title}</p>
-                  <p className="text-2xl font-bold text-gray-800 font-primary mt-1">
-                    {metric.value}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    {metric.isPositive ? (
-                      <AiOutlineArrowUp className="text-green-500" />
-                    ) : (
-                      <AiOutlineArrowDown className="text-red-500" />
-                    )}
-                    <span
-                      className={`text-sm font-medium ${
-                        metric.isPositive ? 'text-green-500' : 'text-red-500'
-                      } font-primary`}
-                    >
-                      {metric.change}
-                    </span>
+        {loading ? (
+          <div className="col-span-4 text-center py-12 text-gray-500 font-primary">Loading analytics...</div>
+        ) : metrics.length === 0 ? (
+          <div className="col-span-4 text-center py-12 text-gray-500 font-primary">No analytics data available.</div>
+        ) : (
+          metrics.map((metric, index) => {
+            const Icon = metricIcons[metric.metric_key] || AiOutlineBarChart
+            const color = metricColors[metric.metric_key] || '#296374'
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 font-primary">{metric.metric_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-2xl font-bold text-gray-800 font-primary mt-1">
+                      {metric.metric_value}
+                    </p>
+                    <div className="flex items-center gap-1 mt-2">
+                      {metric.is_positive ? (
+                        <AiOutlineArrowUp className="text-green-500" />
+                      ) : (
+                        <AiOutlineArrowDown className="text-red-500" />
+                      )}
+                      <span
+                        className={`text-sm font-medium ${
+                          metric.is_positive ? 'text-green-500' : 'text-red-500'
+                        } font-primary`}
+                      >
+                        {metric.metric_change}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gray-50">
+                    <Icon className="text-2xl" style={{ color }} />
                   </div>
                 </div>
-                <div className="p-4 rounded-xl bg-gray-50">
-                  <Icon className="text-2xl" style={{ color: metric.color }} />
-                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
 
       {/* Revenue Chart */}
@@ -239,7 +185,9 @@ function Analytics() {
           <h2 className="text-lg font-bold text-gray-800 font-primary mb-6">Service Performance</h2>
           <div className="space-y-4">
             {servicePerformance.map((service, index) => {
-              const Icon = service.icon
+              const Icon = service.name === 'CRM' ? AiOutlineAppstore :
+                           service.name === 'ERP' ? AiOutlineBarChart :
+                           service.name === 'HR Management' ? AiOutlineAppstore : AiOutlineAppstore
               return (
                 <div
                   key={index}
@@ -263,7 +211,7 @@ function Analytics() {
                         </span>
                       </div>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        <span className="font-primary">{service.customers.toLocaleString()} customers</span>
+                        <span className="font-primary">{service.customers?.toLocaleString()} customers</span>
                         <span className="font-primary">{service.revenue}</span>
                         <span className="font-primary">{service.satisfaction} satisfaction</span>
                       </div>
@@ -339,23 +287,23 @@ function Analytics() {
                     {day.day}
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600 font-primary">
-                    {day.active.toLocaleString()}
+                    {day.active_users?.toLocaleString()}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-green-600 font-medium font-primary">
-                      +{day.new}
+                      +{day.new_signups}
                     </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-red-600 font-medium font-primary">
-                      -{day.churn}
+                      -{day.churned}
                     </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className={`text-sm font-bold font-primary ${
-                      day.new - day.churn >= 0 ? 'text-green-600' : 'text-red-600'
+                      day.new_signups - day.churned >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {day.new - day.churn >= 0 ? '+' : ''}{day.new - day.churn}
+                      {day.new_signups - day.churned >= 0 ? '+' : ''}{day.new_signups - day.churned}
                     </span>
                   </td>
                 </tr>

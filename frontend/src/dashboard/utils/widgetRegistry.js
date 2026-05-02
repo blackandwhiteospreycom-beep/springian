@@ -43,6 +43,72 @@ export const widgetRegistry = {
     defaultSize: { w: 3, h: 3 },
     category: 'navigation',
   },
+  settingsSection: {
+    label: 'General Settings',
+    description: 'App name, language, timezone form',
+    defaultSize: { w: 6, h: 6 },
+    category: 'settings',
+  },
+  settingsToggle: {
+    label: 'Setting Toggle',
+    description: 'Single toggle switch',
+    defaultSize: { w: 4, h: 2 },
+    category: 'settings',
+  },
+  settingsProfile: {
+    label: 'Profile Settings',
+    description: 'Avatar + site name + email',
+    defaultSize: { w: 5, h: 5 },
+    category: 'settings',
+  },
+  settingsSecurity: {
+    label: 'Security Panel',
+    description: 'Password, 2FA, sessions',
+    defaultSize: { w: 6, h: 7 },
+    category: 'settings',
+  },
+  settingsNotifications: {
+    label: 'Notification Toggles',
+    description: 'Email & push notification switches',
+    defaultSize: { w: 5, h: 4 },
+    category: 'settings',
+  },
+  settingsBilling: {
+    label: 'Billing Card',
+    description: 'Plan selector + billing email',
+    defaultSize: { w: 5, h: 5 },
+    category: 'settings',
+  },
+  usersTable: {
+    label: 'Users Table',
+    description: 'Live users table with search',
+    defaultSize: { w: 6, h: 5 },
+    category: 'users',
+  },
+  userStats: {
+    label: 'User Stats',
+    description: 'Total, active, inactive counts',
+    defaultSize: { w: 4, h: 3 },
+    category: 'users',
+  },
+  servicesTable: {
+    label: 'Services List',
+    description: 'Live services list with search',
+    defaultSize: { w: 5, h: 5 },
+    category: 'services',
+  },
+  serviceQuickStats: {
+    label: 'Service Overview',
+    description: 'Services, revenue, customers stats',
+    defaultSize: { w: 6, h: 4 },
+    category: 'services',
+  },
+  analyticsStats: {
+    label: 'Analytics Stats',
+    description: 'Real analytics metrics from API',
+    defaultSize: { w: 6, h: 4 },
+    category: 'analytics',
+  },
 };
 
 export const widgetCategories = [
@@ -52,6 +118,10 @@ export const widgetCategories = [
   { id: 'content', label: 'Content', icon: 'text' },
   { id: 'media', label: 'Media', icon: 'image' },
   { id: 'navigation', label: 'Navigation', icon: 'link' },
+  { id: 'settings', label: 'Settings', icon: 'setting' },
+  { id: 'users', label: 'Users', icon: 'team' },
+  { id: 'services', label: 'Services', icon: 'shop' },
+  { id: 'analytics', label: 'Analytics', icon: 'chart' },
 ];
 
 export const chartTypes = [

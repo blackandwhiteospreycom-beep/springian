@@ -61,6 +61,7 @@ const DEFAULT_WIDGET_CONFIG = {
     trend: 'neutral',
     comparison: 0,
   },
+
   [WIDGET_TYPES.LINK]: {
     title: 'Navigation Link',
     url: '#',
@@ -68,6 +69,46 @@ const DEFAULT_WIDGET_CONFIG = {
     icon: 'link',
     color: '#296374',
     openInNewTab: false,
+  },
+  settingsSection: {
+    title: 'Settings Section',
+    section: 'general',
+  },
+  settingsToggle: {
+    title: 'Setting Toggle',
+    settingKey: 'email_notifications',
+    label: 'Email Notifications',
+    description: 'Receive email updates',
+  },
+  usersTable: {
+    title: 'Users',
+    limit: 5,
+  },
+  servicesTable: {
+    title: 'Services',
+    limit: 10,
+  },
+  analyticsStats: {
+    title: 'Analytics Overview',
+    metrics: ['total_revenue', 'active_users', 'new_signups', 'churn_rate'],
+  },
+  settingsProfile: {
+    title: 'Profile Settings',
+  },
+  settingsSecurity: {
+    title: 'Security Settings',
+  },
+  settingsNotifications: {
+    title: 'Notifications',
+  },
+  settingsBilling: {
+    title: 'Billing',
+  },
+  serviceQuickStats: {
+    title: 'Service Overview',
+  },
+  userStats: {
+    title: 'User Stats',
   },
 };
 
@@ -78,24 +119,28 @@ const GRID_CONFIG = {
 };
 
 export const DashboardProvider = ({ children }) => {
-  const [widgets, setWidgets] = useState([]);
+  const [pageLayouts, setPageLayouts] = useState({});
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [navItems, setNavItems] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [dashboardTitle, setDashboardTitle] = useState('My Dashboard');
 
+  // Computed: widgets for current page
+  const widgets = pageLayouts[currentPage] || [];
+
   // Load from localStorage on mount
   useEffect(() => {
-    const savedLayout = localStorage.getItem('dashboard_layout');
+    const savedLayouts = localStorage.getItem('dashboard_page_layouts');
     const savedNavItems = localStorage.getItem('dashboard_nav');
     const savedTitle = localStorage.getItem('dashboard_title');
 
-    if (savedLayout) {
+    if (savedLayouts) {
       try {
-        setWidgets(JSON.parse(savedLayout));
+        setPageLayouts(JSON.parse(savedLayouts));
       } catch (e) {
-        console.error('Failed to parse saved layout:', e);
+        console.error('Failed to parse saved layouts:', e);
       }
     }
 
@@ -112,10 +157,10 @@ export const DashboardProvider = ({ children }) => {
     }
   }, []);
 
-  // Save widgets to localStorage
+  // Save all page layouts to localStorage
   useEffect(() => {
-    localStorage.setItem('dashboard_layout', JSON.stringify(widgets));
-  }, [widgets]);
+    localStorage.setItem('dashboard_page_layouts', JSON.stringify(pageLayouts));
+  }, [pageLayouts]);
 
   // Save nav items to localStorage
   useEffect(() => {
@@ -126,6 +171,15 @@ export const DashboardProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('dashboard_title', dashboardTitle);
   }, [dashboardTitle]);
+
+  // Set current page (called from DashboardBuilder based on route)
+  const setPage = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
+  const setWidgetsForPage = useCallback((page, newWidgets) => {
+    setPageLayouts(prev => ({ ...prev, [page]: newWidgets }));
+  }, []);
 
   const addWidget = useCallback((type, position = null, configOverrides = null) => {
     const newWidget = {
@@ -146,44 +200,62 @@ export const DashboardProvider = ({ children }) => {
       createdAt: new Date().toISOString(),
     };
 
-    setWidgets(prev => [...prev, newWidget]);
+    setPageLayouts(prev => {
+      const currentWidgets = prev[currentPage] || [];
+      return { ...prev, [currentPage]: [...currentWidgets, newWidget] };
+    });
     return newWidget;
-  }, []);
+  }, [currentPage]);
 
   const updateWidget = useCallback((id, updates) => {
-    setWidgets(prev =>
-      prev.map(widget =>
-        widget.id === id ? { ...widget, ...updates } : widget
-      )
-    );
-  }, []);
+    setPageLayouts(prev => {
+      const currentWidgets = prev[currentPage] || [];
+      return {
+        ...prev,
+        [currentPage]: currentWidgets.map(widget =>
+          widget.id === id ? { ...widget, ...updates } : widget
+        ),
+      };
+    });
+  }, [currentPage]);
 
   const updateWidgetConfig = useCallback((id, configUpdates) => {
-    setWidgets(prev =>
-      prev.map(widget =>
-        widget.id === id
-          ? { ...widget, config: { ...widget.config, ...configUpdates } }
-          : widget
-      )
-    );
-  }, []);
+    setPageLayouts(prev => {
+      const currentWidgets = prev[currentPage] || [];
+      return {
+        ...prev,
+        [currentPage]: currentWidgets.map(widget =>
+          widget.id === id
+            ? { ...widget, config: { ...widget.config, ...configUpdates } }
+            : widget
+        ),
+      };
+    });
+  }, [currentPage]);
 
   const removeWidget = useCallback((id) => {
-    setWidgets(prev => prev.filter(widget => widget.id !== id));
+    setPageLayouts(prev => {
+      const currentWidgets = prev[currentPage] || [];
+      return { ...prev, [currentPage]: currentWidgets.filter(widget => widget.id !== id) };
+    });
     if (selectedWidget?.id === id) {
       setSelectedWidget(null);
       setShowSettingsPanel(false);
     }
-  }, [selectedWidget]);
+  }, [currentPage, selectedWidget]);
 
   const updateWidgetLayout = useCallback((layoutUpdates) => {
-    setWidgets(prev =>
-      prev.map(widget => {
-        const updatedLayout = layoutUpdates.find(l => l.i === widget.layout.i);
-        return updatedLayout ? { ...widget, layout: updatedLayout } : widget;
-      })
-    );
-  }, []);
+    setPageLayouts(prev => {
+      const currentWidgets = prev[currentPage] || [];
+      return {
+        ...prev,
+        [currentPage]: currentWidgets.map(widget => {
+          const updatedLayout = layoutUpdates.find(l => l.i === widget.layout.i);
+          return updatedLayout ? { ...widget, layout: updatedLayout } : widget;
+        }),
+      };
+    });
+  }, [currentPage]);
 
   const addNavItem = useCallback((item) => {
     const newItem = {
@@ -223,10 +295,10 @@ export const DashboardProvider = ({ children }) => {
   }, []);
 
   const resetDashboard = useCallback(() => {
-    setWidgets([]);
+    setPageLayouts({});
     setNavItems([]);
     setDashboardTitle('My Dashboard');
-    localStorage.removeItem('dashboard_layout');
+    localStorage.removeItem('dashboard_page_layouts');
     localStorage.removeItem('dashboard_nav');
     localStorage.removeItem('dashboard_title');
   }, []);
@@ -234,7 +306,7 @@ export const DashboardProvider = ({ children }) => {
   const exportLayout = useCallback(() => {
     const exportData = {
       title: dashboardTitle,
-      widgets,
+      pageLayouts,
       navItems,
       exportedAt: new Date().toISOString(),
     };
@@ -247,16 +319,21 @@ export const DashboardProvider = ({ children }) => {
     a.download = `dashboard-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [dashboardTitle, widgets, navItems]);
+  }, [dashboardTitle, pageLayouts, navItems]);
 
   const importLayout = useCallback((importedData) => {
-    if (importedData.widgets) setWidgets(importedData.widgets);
+    if (importedData.pageLayouts) setPageLayouts(importedData.pageLayouts);
+    else if (importedData.widgets) setPageLayouts({ dashboard: importedData.widgets });
     if (importedData.navItems) setNavItems(importedData.navItems);
     if (importedData.title) setDashboardTitle(importedData.title);
   }, []);
 
   const value = {
     widgets,
+    pageLayouts,
+    currentPage,
+    setPage,
+    setWidgetsForPage,
     navItems,
     isEditMode,
     selectedWidget,
